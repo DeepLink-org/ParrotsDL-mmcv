@@ -240,7 +240,8 @@ def get_extensions():
             extra_compile_args = {
                 'cxx': [],
                 'cncc': [mlu_args] if mlu_args else
-                    ['-v', '-fPIC', '--shared', '--bang-mlu-arch=MLU290', '-O3'],
+                    ['-v', '-fPIC', '--shared',
+                     '--bang-mlu-arch=MLU290', '--bang-mlu-arch=mtp_372', '-O3'],
             }
         ext_ops = Extension(
             name=ext_name,
