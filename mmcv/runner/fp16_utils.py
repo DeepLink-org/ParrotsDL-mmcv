@@ -140,7 +140,7 @@ def auto_fp16(
                     else:
                         new_kwargs[arg_name] = arg_value
             # apply converted arguments to the decorated method
-            if (TORCH_VERSION != 'parrots' and
+            if (TORCH_VERSION == 'parrots' or
                     digit_version(TORCH_VERSION) >= digit_version('1.6.0')):
                 with autocast(enabled=True):
                     output = old_func(*new_args, **new_kwargs)
@@ -227,7 +227,7 @@ def force_fp32(apply_to: Optional[Iterable] = None,
                     else:
                         new_kwargs[arg_name] = arg_value
             # apply converted arguments to the decorated method
-            if (TORCH_VERSION != 'parrots' and
+            if (TORCH_VERSION == 'parrots' or
                     digit_version(TORCH_VERSION) >= digit_version('1.6.0')):
                 with autocast(enabled=False):
                     output = old_func(*new_args, **new_kwargs)
@@ -270,8 +270,8 @@ def wrap_fp16_model(model: nn.Module) -> None:
     Args:
         model (nn.Module): Model in FP32.
     """
-    if (TORCH_VERSION == 'parrots'
-            or digit_version(TORCH_VERSION) < digit_version('1.6.0')):
+    if (TORCH_VERSION != 'parrots'
+            and digit_version(TORCH_VERSION) < digit_version('1.6.0')):
         # convert model to fp16
         model.half()
         # patch the normalization layers to make it work in fp32 mode

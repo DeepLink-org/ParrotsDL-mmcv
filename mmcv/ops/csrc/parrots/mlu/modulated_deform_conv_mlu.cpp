@@ -381,7 +381,7 @@ void modulated_deform_conv_backward_camb_parrots(
 
     const int height_out = (height + 2 * pad_h - (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
     const int width_out = (width + 2 * pad_w - (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
-    
+
     if (ones.ndims() != 2 || ones.dim(0) * ones.dim(1) < height_out * width_out) {
         // Resize plane and fill with ones...
         ones = ctx.createDArrayLite(input.elemType(), DArrayShape(height_out, width_out));
