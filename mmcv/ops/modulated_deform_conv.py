@@ -98,11 +98,11 @@ class ModulatedDeformConv2dFunction(Function):
     @once_differentiable
     def backward(ctx, grad_output: torch.Tensor) -> tuple:
         input, offset, mask, weight, bias = ctx.saved_tensors
-        grad_input = torch.zeros_like(input)
-        grad_offset = torch.zeros_like(offset)
-        grad_mask = torch.zeros_like(mask)
-        grad_weight = torch.zeros_like(weight)
-        grad_bias = torch.zeros_like(bias)
+        grad_input = torch.empty_like(input)
+        grad_offset = torch.empty_like(offset)
+        grad_mask = torch.empty_like(mask)
+        grad_weight = torch.empty_like(weight)
+        grad_bias = torch.empty_like(bias)
         grad_output = grad_output.contiguous()
         ext_module.modulated_deform_conv_backward(
             input,
@@ -202,6 +202,20 @@ class ModulatedDeformConv2d(nn.Module):
 
     def forward(self, x: torch.Tensor, offset: torch.Tensor,
                 mask: torch.Tensor) -> torch.Tensor:
+        out_h = int(x.size(2) / self.stride[0])
+        out_w = int(x.size(3) / self.stride[0])
+
+        if offset.size(2) > out_h or offset.size(3) > out_w:
+            offset_ = offset.reshape(-1)
+            offset_trans_size = offset.size(0) * offset.size(1) * out_h * out_w
+            offset_ = offset_[:offset_trans_size]
+            offset = offset_.view(offset.size(0), offset.size(1), out_h, out_w)
+
+            mask_ = mask.reshape(-1)
+            mask_trans_size = mask.size(0) * mask.size(1) * out_h * out_w
+            mask_ = mask_[:mask_trans_size]
+            mask = mask_.view(mask.size(0), mask.size(1), out_h, out_w)
+
         return modulated_deform_conv2d(x, offset, mask, self.weight, self.bias,
                                        self.stride, self.padding,
                                        self.dilation, self.groups,

@@ -323,8 +323,8 @@ __mlu_func__ void modulated_deformable_col2im_mlu_kernel(
                     for (int dy = -2; dy <= 2; dy++) {
                         for (int dx = -2; dx <= 2; dx++) {
                             if (cur_h + dy >= 0 && cur_h + dy < height_im && cur_w + dx >= 0 &&
-                                    cur_w + dx < width_im && abs(cur_inv_h_data - (cur_h + dy)) < 1 &&
-                                    abs(cur_inv_w_data - (cur_w + dx)) < 1) {
+                                    cur_w + dx < width_im && fabs(cur_inv_h_data - (cur_h + dy)) < 1 &&
+                                    fabs(cur_inv_w_data - (cur_w + dx)) < 1) {
                                 int cur_bottom_grad_pos = ((cur_h + dy) * width_im + cur_w + dx) * channels + c_im;
                                 T weight = dmcn_get_gradient_weight(cur_inv_h_data,
                                                                     cur_inv_w_data, cur_h + dy,
@@ -501,7 +501,7 @@ void modulated_deformable_im2col_camb(
     const int channel_per_deformable_group = channels / deformable_group;
     const int core_nums = k_dim.x * k_dim.y * k_dim.z;
     if (batch_size != 1) {
-        std::runtime_error("batch_size must be 1");
+        throw std::runtime_error("batch_size must be 1");
     }
     if (d_type == CNRT_FLOAT16) {
         forward::modulated_deformable_im2col_mlu_entry<
@@ -536,7 +536,7 @@ void modulated_deformable_col2im_camb(
     const int channel_per_deformable_group = channels / deformable_group;
     const int core_nums = k_dim.x * k_dim.y * k_dim.z;
     if (batch_size != 1) {
-        std::runtime_error("batch_size must be 1");
+        throw std::runtime_error("batch_size must be 1");
     }
     if (d_type == CNRT_FLOAT16) {
         backward::modulated_deformable_col2im_mlu_entry<
@@ -569,7 +569,7 @@ void modulated_deformable_col2im_coord_camb(
     const int channel_per_deformable_group = channels / deformable_group;
     const int core_nums = k_dim.x * k_dim.y * k_dim.z;
     if (batch_size != 1) {
-        std::runtime_error("batch_size must be 1");
+        throw std::runtime_error("batch_size must be 1");
     }
     if (d_type == CNRT_FLOAT16) {
         backward::modulated_deformable_col2im_coord_mlu_entry<
