@@ -41,18 +41,19 @@ def collect_env():
     env_info['Python'] = sys.version.replace('\n', '')
 
     cuda_available = torch.cuda.is_available()
-    env_info['CUDA available'] = cuda_available
+    env_info['Device available'] = cuda_available
 
     if cuda_available:
         devices = defaultdict(list)
         for k in range(torch.cuda.device_count()):
             devices[torch.cuda.get_device_name(k)].append(str(k))
         for name, device_ids in devices.items():
-            env_info['GPU ' + ','.join(device_ids)] = name
+            env_info['Device ' + ','.join(device_ids)] = name
 
         from mmcv.utils.parrots_wrapper import _get_cuda_home
         CUDA_HOME = _get_cuda_home()
-        env_info['CUDA_HOME'] = CUDA_HOME
+        if CUDA_HOME is not None:
+            env_info['CUDA_HOME'] = CUDA_HOME
 
         if CUDA_HOME is not None and osp.isdir(CUDA_HOME):
             try:
@@ -115,6 +116,8 @@ def collect_env():
         env_info['MMCV CUDA Compiler'] = 'n/a'
     else:
         env_info['MMCV Compiler'] = get_compiler_version()
-        env_info['MMCV CUDA Compiler'] = get_compiling_cuda_version()
+        cuda_compiler = get_compiling_cuda_version()
+        if not cuda_compiler:
+            env_info['MMCV CUDA Compiler'] = cuda_compiler
 
     return env_info
