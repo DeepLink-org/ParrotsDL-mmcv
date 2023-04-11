@@ -137,4 +137,5 @@ PARROTS_EXTENSION_REGISTER(nms_rotated)
 #ifdef MMCV_WITH_CUDA
     .apply(nms_rotated_parrots<CudaContext>)
 #endif
+    // .apply(nms_rotated_parrots_mlu)
     .done();

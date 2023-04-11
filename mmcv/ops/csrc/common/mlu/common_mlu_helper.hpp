@@ -15,6 +15,10 @@
 #define NFU_ALIGN_SIZE 128          // Byte
 #define REM_FOR_STACK (128 * 1024)  // 128KB reserved for cncc
 
+#define MLUOP_MAJOR 0
+#define MLUOP_MINOR 4
+#define MLUOP_PATCHLEVEL 2
+
 #ifdef __BANG_ARCH__
 #define MAX_NRAM_SIZE \
   (__MLU_NRAM_SIZE__ * 1024 - REM_FOR_STACK)  // 128KB reserved for cncc

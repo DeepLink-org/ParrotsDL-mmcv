@@ -235,7 +235,10 @@ def get_extensions():
             ]
             op_files = glob.glob('./mmcv/ops/csrc/common/mlu/*.mlu') +\
                 glob.glob('./mmcv/ops/csrc/pytorch/cpu/*.cpp') +\
-                glob.glob('./mmcv/ops/csrc/parrots/mlu/*.cpp')
+                glob.glob('./mmcv/ops/csrc/parrots/mlu/*.cpp') +\
+                glob.glob('./mmcv/ops/csrc/parrots/nms_parrots.cpp') +\
+                glob.glob('./mmcv/ops/csrc/parrots/nms_rotated.cpp') +\
+                glob.glob('./mmcv/ops/csrc/parrots/nms.cpp')
             mlu_args = os.getenv('MMCV_MLU_ARGS')
             extra_compile_args = {
                 'cxx': [],
