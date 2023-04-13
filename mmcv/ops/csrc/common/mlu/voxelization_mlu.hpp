@@ -156,4 +156,4 @@ __mlu_func__ void convertFloat2Int(int *dst, float *dst_addition, float *src,
 #endif  // __BANG_ARCH__ >= 300
 }
 
-#endif  // 
+#endif  //
