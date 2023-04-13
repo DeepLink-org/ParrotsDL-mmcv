@@ -296,6 +296,12 @@ def get_extensions():
                               (exists_mluops_version, mmcv_mluops_version))
                         exit()
 
+            gcc_path = os.getenv("CC")
+            if gcc_path:
+                gcc_path = os.path.normpath(gcc_path)
+                gcc_path = '/'.join(gcc_path.split('/')[:-2])
+            else:
+                gcc_path = '/mnt/lustre/share/platform/dep/gcc-5.4'
             mlu_args = os.getenv('MMCV_MLU_ARGS', '-DNDEBUG')
             mluops_includes = []
             mluops_includes.append('-I' +
@@ -304,7 +310,7 @@ def get_extensions():
                 '-I' + os.path.abspath('./mlu-ops/bangc-ops/kernels'))
             mluops_includes += ['-v', '-fPIC', '--shared',
                                 '--bang-mlu-arch=MLU290', '--bang-mlu-arch=mtp_372', '-O3',
-                                '--gcc-toolchain=/mnt/lustre/share/platform/dep/gcc-5.4/']
+                                f'--gcc-toolchain={gcc_path}']
             extra_compile_args['cncc'] = [mlu_args] + \
                 mluops_includes if mlu_args else mluops_includes
             

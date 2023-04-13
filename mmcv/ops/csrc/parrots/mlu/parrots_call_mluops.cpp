@@ -90,4 +90,3 @@ mluOpHandle_t mluOpGetCurrentHandle(CambContext& ctx) {
   mmcv_mluop_handles[device_index].setQueue(queue);
   return mmcv_mluop_handles[device_index].handle;
 }
-
