@@ -37,8 +37,6 @@ mluOpTensorLayout_t getMluOpSuggestLayout(const DArrayLite& input) {
                    ? MLUOP_LAYOUT_NHWC
                    : MLUOP_LAYOUT_NCHW;
       break;
-    default:
-      layout = MLUOP_LAYOUT_ARRAY;
   }
   return layout;
 }
@@ -82,8 +80,7 @@ mluOpHandle_t mluOpGetCurrentHandle(CambContext& ctx) {
                    mmcv_mluop_handles.resize(num_device);
                  });
 
-  int device_index = -1;
-  device_index = ctx.getProxy().deviceId();
+  int device_index = ctx.getProxy().deviceId();
 
   std::lock_guard<std::mutex> mmcv_mluop_guard(mmcv_mluop_mutex);
   auto queue = ctx.getStream().native();

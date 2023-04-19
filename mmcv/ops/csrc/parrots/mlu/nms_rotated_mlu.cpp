@@ -8,17 +8,17 @@
 using namespace parrots;
 
 DArrayLite nms_rotated_mlu(CambContext& ctx, const DArrayLite boxes, const DArrayLite scores,
-                       const float iou_threshold) {
+                           const float iou_threshold) {
   if (boxes.size() == 0) {
-    DArrayLite output =  ctx.createDArrayLite(boxes.spec().withShape(DArrayShape(0)).withElemType(Prim::Int64));
+    DArrayLite output = ctx.createDArrayLite(boxes.spec().array(Prim::Int64, DArrayShape(0)));
     return output;
   }
 
   int boxes_num = boxes.dim(0);
   auto boxes_ = boxes;
   auto scores_ = scores;
-  DArrayLite output =  ctx.createDArrayLite(boxes.spec().withShape(DArrayShape(boxes_num)).withElemType(Prim::Int32));
-  DArrayLite output_size =  ctx.createDArrayLite(scores.spec().withShape(DArrayShape(1)).withElemType(Prim::Int32));
+  DArrayLite output = ctx.createDArrayLite(boxes.spec().array(Prim::Int32, DArrayShape(boxes_num)));
+  DArrayLite output_size = ctx.createDArrayLite(scores.spec().array(Prim::Int32, DArrayShape(1)));
 
   MluOpTensorDescriptor boxes_desc, scores_desc, output_desc;
   boxes_desc.set(boxes_);
@@ -28,7 +28,7 @@ DArrayLite nms_rotated_mlu(CambContext& ctx, const DArrayLite boxes, const DArra
   size_t workspace_size(0);
   auto handle = mluOpGetCurrentHandle(ctx);
   mluOpGetNmsRotatedWorkspaceSize(handle, boxes_desc.desc(), &workspace_size);
-  DArrayLite workspace = ctx.createDArrayLite(boxes.spec().withShape(DArrayShape(workspace_size)).withElemType(Prim::Int32));
+  DArrayLite workspace = ctx.createDArrayLite(boxes.spec().array(Prim::Uint8, DArrayShape(workspace_size)));
 
   auto boxes_ptr = boxes_.data();
   auto scores_ptr = scores_.data();
@@ -39,12 +39,12 @@ DArrayLite nms_rotated_mlu(CambContext& ctx, const DArrayLite boxes, const DArra
   mluOpNmsRotated(handle, iou_threshold, boxes_desc.desc(), boxes_ptr,
                   scores_desc.desc(), scores_ptr, workspace_ptr, workspace_size,
                   output_desc.desc(), output_ptr, (int *)output_size_ptr);
-  DArrayLite outputHost = ctx.createDArrayLite(scores.spec().withShape(DArrayShape(1)).withElemType(Prim::Int32), getHostProxy());
+  DArrayLite outputHost = ctx.createDArrayLite(scores.spec().array(Prim::Int32, DArrayShape(1)), getHostProxy());
   copy(ctx, outputHost, output_size);
   ctx.getStream().synchronize();
   int output_num = *static_cast<int *>(outputHost.data());
   
-  DArrayLite ret = ctx.createDArrayLite(boxes.spec().withShape(DArrayShape(boxes_num)).withElemType(Prim::Int64));
+  DArrayLite ret = ctx.createDArrayLite(boxes.spec().array(Prim::Int64, DArrayShape(boxes_num)));
   cast(ctx, output, ret);
   DArrayLite reout = op::slice(ctx, ret, 0, 0, output_num, 1);
   return reout;
@@ -52,8 +52,8 @@ DArrayLite nms_rotated_mlu(CambContext& ctx, const DArrayLite boxes, const DArra
 
 
 void nms_rotated_parrots_mlu(CambContext& ctx, const SSElement& attr,
-                         const OperatorBase::in_list_t& ins,
-                         OperatorBase::out_list_t& outs) {
+                             const OperatorBase::in_list_t& ins,
+                             OperatorBase::out_list_t& outs) {
   float iou_threshold;
   int multi_label;
   SSAttrs(attr)
