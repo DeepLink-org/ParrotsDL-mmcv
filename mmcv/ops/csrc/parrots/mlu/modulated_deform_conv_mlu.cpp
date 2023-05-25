@@ -399,11 +399,12 @@ void modulated_deform_conv_backward_camb_parrots(
     DArrayLite grad_input_nhwc = ctx.createDArrayLite(grad_input.spec().duplicate(parrots::MemoryFormat::ChannelsLast));
     cambTransposeTo(ctx, grad_input, grad_input_nhwc, CNNL_LAYOUT_NCHW, CNNL_LAYOUT_NHWC);
 
+    cnrtDim3_t k_dim = {getDeviceAttr(cnrtAttrMcorePerCluster), getDeviceAttr(cnrtAttrClusterCount), 1};
+    cnrtFunctionType_t k_type = CNRT_FUNC_TYPE_BLOCK;
+    auto queue = ctx.getStream().native();
+    cnrtDataType_t d_type = getCnrtDataType(input.elemType());
+
     for (int b = 0; b < batch; b++) {
-        cnrtDim3_t k_dim = {getDeviceAttr(cnrtAttrMcorePerCluster), getDeviceAttr(cnrtAttrClusterCount), 1};
-        cnrtFunctionType_t k_type = CNRT_FUNC_TYPE_UNION1;
-        auto queue = ctx.getStream().native();
-        cnrtDataType_t d_type = getCnrtDataType(input.elemType());
         // divide int group
         columns = columns.view({group, columns.dim(0) / group, columns.dim(1)});
         weight = weight.view({group, weight.dim(0) / group, weight.dim(1),
