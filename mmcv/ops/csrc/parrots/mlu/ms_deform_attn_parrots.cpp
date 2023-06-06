@@ -128,6 +128,39 @@ DArrayLite ms_deform_attn_mlu_forward(CambContext& ctx, const DArrayLite& value,
                                   const DArrayLite& attn_weight,
                                   const int im2col_step) {
 
+  // check datatype
+  PARROTS_CHECKARGS(value.elemType() == Prim::Float32)
+              <<"value type should be Float, got "<< value.elemType()<< ".";
+  PARROTS_CHECKARGS(spatial_shapes.elemType() == Prim::Int32 ||
+               spatial_shapes.elemType() == Prim::Int64)
+               <<"spatial_shapes type should be Int, got "
+               <<spatial_shapes.elemType()<< ".";
+  PARROTS_CHECKARGS(level_start_index.elemType() == Prim::Int32 ||
+               level_start_index.elemType() == Prim::Int64)
+               <<"level_start_index type should be Int, got "
+               <<level_start_index.elemType()<< ".";
+  PARROTS_CHECKARGS(sampling_loc.elemType() == Prim::Float32)
+               <<"sampling_loc type should be Float, got "
+               <<sampling_loc.elemType()<< ".";
+  PARROTS_CHECKARGS(attn_weight.elemType() == Prim::Float32)
+              <<"attn_weight type should be Float, got "
+              <<attn_weight.elemType()<< ".";
+
+  // check shape
+  PARROTS_CHECKARGS(value.ndims() == 4)<< "value should be a 4d tensor, got "
+              <<value.ndims()<< "D.";
+  PARROTS_CHECKARGS(spatial_shapes.ndims() == 2)
+              <<"spatial_shapes should be a 2d tensor, got "
+              <<spatial_shapes.ndims()<< "D.";
+  PARROTS_CHECKARGS(level_start_index.ndims() == 1)
+              <<"level_start_index should be a 1d tensor, got "
+              <<level_start_index.ndims()<< "D.";
+  PARROTS_CHECKARGS(sampling_loc.ndims() == 6)
+              <<"sampling_loc should be a 6d tensor, got "
+              << sampling_loc.ndims()<<"D.";
+  PARROTS_CHECKARGS(attn_weight.ndims() == 5)
+              << "attn_weight should be a 5d tensor, got "
+              <<attn_weight.ndims()<< "D.";
 
   const int batch_size = value.dim(0);
   const int num_keys = value.dim(1);
@@ -137,12 +170,69 @@ DArrayLite ms_deform_attn_mlu_forward(CambContext& ctx, const DArrayLite& value,
   const int num_queries = sampling_loc.dim(1);
   const int num_points = sampling_loc.dim(4);
 
-
-
+  PARROTS_CHECKARGS(spatial_shapes.dim(1) == 2)
+              <<"the 2nd dimensions of spatial_shapes should be 2, got "
+              <<spatial_shapes.dim(1)<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(5) == 2)
+              <<"the 6th dimensions of sampling_loc should be 2, got "
+              <<sampling_loc.dim(5)<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(0) == batch_size)
+              <<"the 1st dimensions of sampling_loc should be batch_size, "
+              <<"but now the 1st dimension of sampling_loc is "
+              <<sampling_loc.dim(0)<< ", and batch_size is "<< batch_size<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(0) == batch_size)
+              <<"the 1st dimensions of attn_weight should be batch_size, "
+              <<"but now the 1st dimension of attn_weight is "
+              <<attn_weight.dim(0)<< ", and batch_size is "<< batch_size<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(2) == num_heads)
+              <<"the 3rd dimensions of sampling_loc should be num_heads, "
+              <<"but now the 3rd dimension of sampling_loc is "
+              <<sampling_loc.dim(2)<< ", and num_heads is "<< num_heads<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(2) == num_heads)
+              <<"the 3rd dimensions of attn_weight should be num_heads, "
+              <<"but now the 3rd dimension of attn_weight is "
+              <<attn_weight.dim(2)<< ", and num_heads is "<< num_heads<< ".";
+  PARROTS_CHECKARGS(level_start_index.dim(0) == num_levels)
+              <<"the 1st dimensions of level_start_index should be num_levels, "
+              <<"but now the 1st dimension of level_start_index is "
+              <<level_start_index.dim(0)<< ", and num_levels is "<< num_levels<<".";
+  PARROTS_CHECKARGS(sampling_loc.dim(3) == num_levels)
+              <<"the 4th dimensions of sampling_loc should be num_levels, "
+              <<"but now the 4th dimension of sampling_loc is "
+              <<sampling_loc.dim(3)<< ", and num_levels is "<< num_levels<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(3) == num_levels)
+              <<"the 4th dimensions of attn_weight should be num_levels, "
+              <<"but now the 4th dimension of attn_weight is "
+              <<attn_weight.dim(3)<< ", and num_levels is "<< num_levels<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(1) == num_queries)
+              <<"the 2nd dimensions of attn_weight should be num_queries, "
+              <<"but now the 2nd dimension of attn_weight is "
+              <<attn_weight.dim(1)<< ", and num_queries is "<< num_queries<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(4) == num_points)
+              <<"the 5th dimensions of attn_weight should be num_points, "
+              <<"but now the 5th dimension of attn_weight is "
+              <<attn_weight.dim(4)<< ", and num_points is "<< num_points<< ".";
 
   auto output = ctx.createDArrayLite(type_<float>(),
                             DArrayShape(batch_size, num_queries, num_heads, channels));
   
+  // large tensor check
+  const size_t max_input_size = 2147483648;
+  PARROTS_CHECKARGS(value.size() < max_input_size)
+              <<"value element num should be less than 2^31, got "<< value.size()
+              <<".";
+  PARROTS_CHECKARGS(sampling_loc.size() < max_input_size)
+              <<"sampling_loc element num should be less than 2^31, got "
+              <<sampling_loc.size()<< ".";
+  PARROTS_CHECKARGS(output.size() < max_input_size)
+              <<"output element num should be less than 2^31, got "
+              <<output.size()<< ".";
+
+  // check zero element
+  PARROTS_CHECKARGS(batch_size != 0)<< "batch_size should not be zero";
+  PARROTS_CHECKARGS(num_heads != 0)<< "num_heads should not be zero";
+  PARROTS_CHECKARGS(channels != 0)<< "channels should not be zero";
+  PARROTS_CHECKARGS(num_queries != 0)<< "num_queries should not be zero";
 
   //normal(ctx, 0.5, 0.5, output);
   //std::cout<<"!!! MLUKernelMsDeformAttnForwardDefault return a fake tensor"<<std::endl;
@@ -152,7 +242,6 @@ DArrayLite ms_deform_attn_mlu_forward(CambContext& ctx, const DArrayLite& value,
     return output;
   }
 
-
   cnrtDim3_t k_dim;
   cnrtFunctionType_t k_type;
   MsDeformAttnForwardPolicy policy = msDeformAttnForwardPolicyFunc(
@@ -161,8 +250,8 @@ DArrayLite ms_deform_attn_mlu_forward(CambContext& ctx, const DArrayLite& value,
 
 
   auto queue = ctx.getStream().native();
-  auto spatial_shapes_ = spatial_shapes;   //.to(at::kInt);
-  auto level_start_index_ = level_start_index; //.to(at::kInt);
+  auto spatial_shapes_ = spatial_shapes;   //.to(Prim::Int32);
+  auto level_start_index_ = level_start_index; //.to(Prim::Int32);
 
 
 
@@ -216,7 +305,26 @@ void ms_deform_attn_mlu_backward(CambContext& ctx,
     DArrayLite& grad_sampling_loc, DArrayLite& grad_attn_weight,
     const int im2col_step) {
 
-
+  // check datatype
+  PARROTS_CHECKARGS(value.elemType() == Prim::Float32)
+              <<"value type should be Float, got "<< value.elemType()<< ".";
+  PARROTS_CHECKARGS(spatial_shapes.elemType() == Prim::Int32 ||
+               spatial_shapes.elemType() == Prim::Int64)
+              <<"spatial_shapes type should be Int, got "
+              <<spatial_shapes.elemType()<< ".";
+  PARROTS_CHECKARGS(level_start_index.elemType() == Prim::Int32 ||
+               level_start_index.elemType() == Prim::Int64)
+              <<"level_start_index type should be Int, got "
+              <<level_start_index.elemType()<< ".";
+  PARROTS_CHECKARGS(sampling_loc.elemType() == Prim::Float32)
+              <<"sampling_loc type should be Float, got "
+              <<sampling_loc.elemType()<< ".";
+  PARROTS_CHECKARGS(attn_weight.elemType() == Prim::Float32)
+              <<"attn_weight type should be Float, got "
+              <<attn_weight.elemType()<< ".";
+  PARROTS_CHECKARGS(grad_output.elemType() == Prim::Float32)
+              <<"grad_output type should be Float, got "
+              <<grad_output.elemType()<< ".";
 
   const int batch_size = value.dim(0);
   const int num_keys = value.dim(1);
@@ -226,7 +334,82 @@ void ms_deform_attn_mlu_backward(CambContext& ctx,
   const int num_queries = sampling_loc.dim(1);
   const int num_points = sampling_loc.dim(4);
   
+  // Check shape.
+  PARROTS_CHECKARGS(spatial_shapes.dim(1) == 2)
+              <<"the 2nd dimensions of spatial_shapes should be 2, got "
+              <<spatial_shapes.dim(1)<< ".";
 
+  PARROTS_CHECKARGS(level_start_index.dim(0) == num_levels)
+              <<"the 1st dimensions of level_start_index should be num_levels, "
+              <<"but now the 1st dimension of level_start_index is "
+              <<level_start_index.dim(0)<< ", and num_levels is "<< num_levels
+              <<".";
+
+  PARROTS_CHECKARGS(sampling_loc.dim(0) == batch_size)
+              <<"the 1st dimensions of sampling_loc should be batch_size, "
+              <<"but now the 1st dimension of sampling_loc is "
+              <<sampling_loc.dim(0)<< ", and batch_size is "<< batch_size<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(2) == num_heads)
+              <<"the 3rd dimensions of sampling_loc should be num_heads, "
+              <<"but now the 3rd dimension of sampling_loc is "
+              <<sampling_loc.dim(2)<< ", and num_heads is "
+              << num_heads<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(3) == num_levels)
+              <<"the 4th dimensions of sampling_loc should be num_levels, "
+              <<"but now the 4th dimension of sampling_loc is "
+              <<sampling_loc.dim(3)
+              << ", and num_levels is "<< num_levels<< ".";
+  PARROTS_CHECKARGS(sampling_loc.dim(5) == 2)
+              <<"the 6th dimensions of sampling_loc should be 2, got "
+              <<sampling_loc.dim(5)<< ".";
+
+  PARROTS_CHECKARGS(attn_weight.dim(0) == batch_size)
+              <<"the 1st dimensions of attn_weight should be batch_size, "
+              <<"but now the 1st dimension of attn_weight is "
+              <<attn_weight.dim(0)<< ", and batch_size is "<< batch_size<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(1) == num_queries)
+              <<"the 2nd dimensions of attn_weight should be num_queries, "
+              <<"but now the 2nd dimension of attn_weight is "
+              <<attn_weight.dim(1)
+              << ", and num_queries is "<< num_queries<< ".";
+
+  PARROTS_CHECKARGS(attn_weight.dim(2) == num_heads)
+              <<"the 3rd dimensions of attn_weight should be "<< num_heads
+              <<"but now the 3rd dimension of attn_weight is "
+              <<attn_weight.dim(2)
+              << ", and num_heads is "<< num_heads<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(3) == num_levels)
+              <<"the 4th dimensions of attn_weight should be num_levels, "
+              <<"but now the 4th dimension of attn_weight is "
+              <<attn_weight.dim(3)
+              << ", and num_levels is "<< num_levels<< ".";
+  PARROTS_CHECKARGS(attn_weight.dim(4) == num_points)
+              <<"the 5th dimensions of attn_weight should be "<< num_points
+              <<"but now the 5th dimension of attn_weight is "
+              <<attn_weight.dim(4)
+              << ", and num_points is "<< num_points<< ".";
+
+  PARROTS_CHECKARGS(grad_output.dim(0) == batch_size)
+              <<"the 1st dimensions of grad_output should be "<<batch_size 
+              <<"but now the 1st dimension of grad_output is "
+              <<grad_output.dim(0)
+              << ", and batch_size is "<< batch_size<< ".";
+  PARROTS_CHECKARGS(grad_output.dim(1) == num_queries)
+              <<"the 2nd dimensions of grad_output should be "<<num_queries 
+              <<"but now the 2nd dimension of grad_output is "
+              <<grad_output.dim(1)
+              << ", and num_queries is "<< num_queries<< ".";
+  PARROTS_CHECKARGS(grad_output.dim(2) == num_heads * channels)
+              <<"the 3rd dimensions of grad_output should be "<<num_heads * channels
+              <<"but now the 3rd dimension of grad_output is "<< grad_output.dim(2)
+              <<", and num_heads * channels is "<< num_heads * channels<< ".";
+
+  // check zero element
+  PARROTS_CHECKARGS(batch_size != 0)<< "The batch_size is zero.";
+  PARROTS_CHECKARGS(channels != 0)<< "The channels is zero.";
+  PARROTS_CHECKARGS(num_keys != 0)<< "The num_keys is zero.";
+  PARROTS_CHECKARGS(num_heads != 0)<< "The num_heads is zero.";
+  PARROTS_CHECKARGS(num_queries != 0)<< "The num_queries is zero.";
 
   if (num_levels == 0 || num_points == 0) {
     return;
