@@ -1342,9 +1342,9 @@ __mlu_global__ void MLUUnion1KernelMsDeformAttnBackwarDefaultKernel(
 
         for (int32_t C_loop = 0; C_loop < C_repeat; ++C_loop) {
           base_ptr = m_col * channels + C_loop * deal_num;
-          __bang_write_zero(grad_h_weight, PAD_UP(channels, ALIGN_NUM));
-          __bang_write_zero(grad_w_weight, PAD_UP(channels, ALIGN_NUM));
-          __bang_write_zero(grad_output_nram, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_h_weight, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_w_weight, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_output_nram, PAD_UP(channels, ALIGN_NUM));
           __memcpy(top_grad,
                    grad_output + grad_output_offset + C_loop * deal_num,
                    deal_num * LEN_FLOAT, GDRAM2NRAM);
@@ -1360,9 +1360,9 @@ __mlu_global__ void MLUUnion1KernelMsDeformAttnBackwarDefaultKernel(
         }
         if (C_tail != 0) {
           base_ptr = m_col * channels + C_repeat * deal_num;
-          __bang_write_zero(grad_h_weight, PAD_UP(channels, ALIGN_NUM));
-          __bang_write_zero(grad_w_weight, PAD_UP(channels, ALIGN_NUM));
-          __bang_write_zero(grad_output_nram, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_h_weight, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_w_weight, PAD_UP(channels, ALIGN_NUM));
+          __bang_write_zero(grad_output_nram, PAD_UP(channels, ALIGN_NUM));
           __memcpy(top_grad,
                    grad_output + grad_output_offset + C_repeat * deal_num,
                    C_tail * LEN_FLOAT, GDRAM2NRAM);
