@@ -346,13 +346,16 @@ class MultiScaleDeformableAttention(BaseModule):
             raise ValueError(
                 f'Last dim of reference_points must be'
                 f' 2 or 4, but get {reference_points.shape[-1]} instead.')
-        if torch.cuda.is_available() and value.is_cuda:
-            output = MultiScaleDeformableAttnFunction.apply(
-                value, spatial_shapes, level_start_index, sampling_locations,
-                attention_weights, self.im2col_step)
-        else:
-            output = multi_scale_deformable_attn_pytorch(
-                value, spatial_shapes, sampling_locations, attention_weights)
+        #if torch.cuda.is_available() and value.is_cuda:
+        #    output = MultiScaleDeformableAttnFunction.apply(
+        #        value, spatial_shapes, level_start_index, sampling_locations,
+        #        attention_weights, self.im2col_step)
+        #else:
+        #    output = multi_scale_deformable_attn_pytorch(
+        #        value, spatial_shapes, sampling_locations, attention_weights)
+        output = multi_scale_deformable_attn_pytorch(
+            value.to('cpu'), spatial_shapes.to('cpu'), sampling_locations.to('cpu'),
+            attention_weights.to('cpu')).to('cuda')
 
         output = self.output_proj(output)
 
